@@ -1,0 +1,14 @@
+database:
+  host: 192.168.1.24
+  port: 3307
+  username: root
+  password:
+  database: go-test
+
+redis:
+  port: 80
+
+jwt:
+  secret: weiwei
+  issuer: test
+  expireSeconds: 3600
