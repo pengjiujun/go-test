@@ -2,7 +2,7 @@ package route
 
 import (
 	"github.com/gin-gonic/gin"
-	"test/internal/handle"
+	"test/internal/handler"
 	"test/internal/middleware"
 )
 
@@ -14,7 +14,7 @@ func Route() *gin.Engine {
 
 	api := router.Group("/api")
 
-	u := new(handle.User)
+	u := new(handler.User)
 	user := api.Group("/user")
 	{
 		user.GET("/index", u.Index)

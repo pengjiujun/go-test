@@ -1,13 +1,13 @@
-package handle
+package handler
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"test/internal/model"
-	"test/pkg/config"
+	"test/internal/service"
 	"test/pkg/database"
-	"test/pkg/jwt"
 	"time"
 )
 
@@ -58,9 +58,23 @@ func (u *User) Created(c *gin.Context) {
 		c.JSON(422, ErrorResponse(422, err.Error()))
 		return
 	}
+
+	var count int64
+	if err := database.DB.Model(&model.User{}).Where("account = ?", req.Account).Count(&count).Error; err != nil {
+		c.JSON(422, ErrorResponse(422, "xx"+err.Error()))
+		return
+	}
+
+	if count > 0 {
+		c.JSON(422, ErrorResponse(422, "账号已存在"))
+		return
+	}
+
+	// 注册时：加密密码
+	hashedPwd, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	user := model.User{
+		Password: string(hashedPwd),
 		Account:  req.Account,
-		Password: req.Password,
 	}
 
 	if err := database.DB.Create(&user).Error; err != nil {
@@ -84,32 +98,12 @@ func (u *User) Login(c *gin.Context) {
 		return
 	}
 
-	var user model.User
-	if err := database.DB.Where("account = ?", req.Account).First(&user).Error; err != nil {
-		c.JSON(422, ErrorResponse(422, "用户不存在"))
-		return
-	}
-
-	if user.Password != req.Password {
-		c.JSON(422, ErrorResponse(422, "密码错误"))
-		return
-	}
-
-	newJwt := jwt.NewJWT(config.Conf.Jwt.Secret, config.Conf.Jwt.Issuer, config.Conf.Jwt.ExpireSeconds)
-	token, err := newJwt.CreateToken(int64(user.ID))
+	token, err := service.LoginService(req.Account, req.Password)
 	if err != nil {
-		c.JSON(422, ErrorResponse(422, "登录错误"))
+		c.JSON(422, ErrorResponse(422, err.Error()))
 		return
 	}
 
-	c.JSON(200, SuccessResponse(respLogin{
-		Token: token,
-		User: respUser{
-			Id:        user.ID,
-			Account:   user.Account,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-		},
-	}))
+	c.JSON(200, SuccessResponse(gin.H{"token": token}))
 
 }
