@@ -1,0 +1,33 @@
+# --- 1. 字段名翻译 (用于替换占位符) ---
+[Field_Name]
+other = "氏名"  # 或者 "名前"
+
+[Field_Phone]
+other = "携帯番号" # 或者 "電話番号"
+
+[Field_IDCard]
+other = "身分証番号" # 日本很少用"身份证"这个词，一般用身分証明書/ID
+
+# --- 2. 校验错误文案 (对应 Validator 的 Tag) ---
+# 注意：日语中的占位符 {0} 后面通常紧跟助词（如 "は" 或 "の"）
+
+[Valid_Required]
+other = "{0}は必須項目です"
+
+[Valid_Mobile]
+other = "{0}の形式が正しくありません"
+
+[Valid_IsChinese]
+# 这里的 "Chinese" 对应的正则通常是汉字。
+# 如果是面向日本用户，建议翻译为“请用汉字输入”
+other = "{0}は漢字で入力してください"
+
+[Valid_IDCard]
+other = "{0}が無効、または形式が正しくありません"
+
+# --- 3. 业务逻辑错误 ---
+[UserJoined]
+other = "既に参加済みです" # 意为：已经参加了
+
+[RegisterSuccess]
+other = "登録が完了しました"

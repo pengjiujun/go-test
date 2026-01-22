@@ -1,0 +1,23 @@
+# --- 1. Field Names ---
+[Field_Name]
+other = "Name"
+[Field_Phone]
+other = "Mobile"
+[Field_IDCard]
+other = "ID Card"
+
+# --- 2. Validation Errors ---
+[Valid_Required]
+other = "{0} is a required field"
+[Valid_Mobile]
+other = "{0} format is incorrect"
+[Valid_IsChinese]
+other = "{0} must be Chinese characters"
+[Valid_IDCard]
+other = "{0} is invalid"
+
+# --- 3. Business Errors ---
+[UserJoined]
+other = "User has already joined the activity"
+[RegisterSuccess]
+other = "Registration successful"

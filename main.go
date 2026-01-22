@@ -1,10 +1,15 @@
 package main
 
 import (
+	"embed"
 	"test/pkg/config"
 	"test/pkg/database"
 	"test/pkg/route"
+	"test/pkg/translation"
 )
+
+//go:embed locales/*.toml
+var rootLocales embed.FS
 
 func main() {
 
@@ -13,6 +18,9 @@ func main() {
 
 	// 配置数据库
 	database.InitDb()
+
+	// 多语言翻译
+	translation.InitComponents(rootLocales)
 
 	// 路由与中间件
 	r := route.Route()

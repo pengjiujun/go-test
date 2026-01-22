@@ -20,9 +20,21 @@ type JwtConfig struct {
 	ExpireSeconds int64
 }
 
+type LogConfig struct {
+	Level      string
+	Format     string
+	Output     string
+	FilePath   string
+	MaxSize    int
+	MaxBackups int
+	MaxAge     int
+	Compress   bool
+}
+
 type Config struct {
 	Database DBConfig
 	Jwt      JwtConfig
+	Log      LogConfig
 }
 
 var Conf *Config

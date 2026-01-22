@@ -1,0 +1,205 @@
+basePath: /api/v1
+definitions:
+  request.LoginReq:
+    properties:
+      account:
+        type: string
+      password:
+        type: string
+    required:
+    - account
+    - password
+    type: object
+  request.RegisterReq:
+    properties:
+      account:
+        description: 'label: 对应 TOML 里的 Field_Phone'
+        type: string
+      password:
+        type: string
+      password_confirm:
+        type: string
+    required:
+    - account
+    - password
+    - password_confirm
+    type: object
+  response.Response:
+    properties:
+      code:
+        type: integer
+      data:
+        description: 去掉 omitempty，保证 data 始终返回 (哪怕是 null)
+      msg:
+        type: string
+    type: object
+  serializer.UserDataList:
+    properties:
+      items:
+        description: 明确指定这里是 UserResp 数组
+        items:
+          $ref: '#/definitions/serializer.UserResp'
+        type: array
+      page:
+        type: integer
+      size:
+        type: integer
+      total:
+        type: integer
+    type: object
+  serializer.UserResp:
+    properties:
+      account:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: 这是一个基于 Gin 的后端 API 服务
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Go Gin Web 脚手架 API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录获取 Token
+      parameters:
+      - description: 登录参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.LoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: 账号或密码错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 用户登录
+      tags:
+      - User
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户账号
+      parameters:
+      - description: 注册参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/request.RegisterReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.UserResp'
+              type: object
+        "400":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 用户注册
+      tags:
+      - User
+  /user/profile:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前登录用户的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.UserResp'
+              type: object
+        "401":
+          description: 未授权
+          schema:
+            $ref: '#/definitions/response.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取当前用户详情
+      tags:
+      - User
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取用户列表数据
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 成功返回
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/serializer.UserDataList'
+              type: object
+        "500":
+          description: 系统繁忙
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取用户列表
+      tags:
+      - User
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

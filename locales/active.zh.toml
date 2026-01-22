@@ -1,0 +1,52 @@
+# --- 1. 字段名翻译 (用于替换占位符) ---
+[Field_Name]
+other = "姓名"
+[Field_Phone]
+other = "手机号"
+[Field_IDCard]
+other = "身份证号"
+[Field_Password]
+other = "密码"
+
+# --- 2. 校验错误文案 (对应 Validator 的 Tag) ---
+# 注意：{0} 是 Validator 必须的占位符，代表字段名
+[Valid_Required]
+other = "{0}为必填字段1"
+[Valid_Mobile]
+other = "{0}格式不正确"
+[Valid_IsChinese]
+other = "{0}必须是纯中文"
+[Valid_IDCard]
+other = "{0}格式无效"
+
+# --- 3. 业务逻辑错误 ---
+[UserJoined]
+# ❌ 错误写法 (这是 Validator 的风格)
+# other = "用户 {Name} 已参加活动"
+
+# ✅ 正确写法 (这是 Go Template 的风格)
+# 注意：两层大括号，而且变量名前面要有一个点 (.)
+other = "用户{{.Name}}已参加活动"
+[RegisterSuccess]
+other = "注册成功"
+
+[UserAlreadyExists]
+other = "账号 {{.Name}} 已存在"
+
+[PasswordTooShort]
+other = "密码长度不能少于6位"
+
+[SystemBusy]
+other = "系统繁忙，请稍后再试"
+
+[SystemError]
+other = "系统内部错误"
+
+[Success]
+other = "操作成功"
+
+[InvalidJSON]
+other = "请求参数格式错误"
+
+[PasswordHashedErr]
+other = "密码加密错误"
