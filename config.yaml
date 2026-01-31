@@ -7,7 +7,10 @@ database:
   database: go-test
 
 redis:
-  port: 80
+  port: 6379
+  addr: 192.168.1.24
+  password: ""
+  db: 0
 
 # JWT 配置
 jwt:

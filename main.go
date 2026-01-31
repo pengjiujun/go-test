@@ -4,6 +4,7 @@ import (
 	"embed"
 	"test/pkg/config"
 	"test/pkg/database"
+	"test/pkg/redis"
 	"test/pkg/route"
 	"test/pkg/translation"
 )
@@ -18,6 +19,8 @@ func main() {
 
 	// 配置数据库
 	database.InitDb()
+
+	redis.InitRedis()
 
 	// 多语言翻译
 	translation.InitComponents(rootLocales)

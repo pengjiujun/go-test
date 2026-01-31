@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/fsnotify/fsnotify"
 	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"strings"
@@ -12,6 +13,13 @@ type DBConfig struct {
 	Username string
 	Password string
 	Database string
+}
+
+type RedisConfig struct {
+	Port     int
+	Addr     string
+	Password string
+	DB       int
 }
 
 type JwtConfig struct {
@@ -33,6 +41,7 @@ type LogConfig struct {
 
 type Config struct {
 	Database DBConfig
+	Redis    RedisConfig
 	Jwt      JwtConfig
 	Log      LogConfig
 }
@@ -59,6 +68,15 @@ func Load() {
 	}
 
 	var config Config
+	// 监听配置文件
+	v.WatchConfig()
+	v.OnConfigChange(func(in fsnotify.Event) {
+		// 重载配置
+		if err := v.Unmarshal(&config); err != nil {
+			panic(err)
+		}
+	})
+
 	if err := v.Unmarshal(&config); err != nil {
 		panic(err)
 	}

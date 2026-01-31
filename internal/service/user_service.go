@@ -1,51 +1,77 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/redis/go-redis/v9"
+	"time"
+
 	"golang.org/x/crypto/bcrypt"
 	"strings"
+	"test/internal/dao"
 	"test/internal/model"
 	"test/pkg/config"
 	"test/pkg/database"
 	"test/pkg/jwt"
+	myredis "test/pkg/redis"
 	"test/pkg/util"
-	"unicode/utf8"
 )
 
-func GetUserByID(id int64) (*model.User, error) {
-	var user model.User
-	// 这里未来可以加 Redis 缓存！
-	if err := database.DB.First(&user, id).Error; err != nil {
+func GetUserByID(ctx context.Context, id int64) (*model.User, error) {
+	// ===========================
+	// 1️⃣ 第一步：查询 Redis 缓存
+	// ===========================
+	// 定义一个唯一的 Key，例如 "user:info:1001"
+	cacheKey := fmt.Sprintf("user:info:%d", id)
+
+	// 从 Redis 获取字符串
+	val, err := myredis.RedisClient.Get(ctx, cacheKey).Result()
+
+	// 如果 err == nil，说明缓存里有数据 (缓存命中)
+	if err == nil {
+		var user model.User
+		// 反序列化：把 JSON 字符串变回 Struct
+		if jsonErr := json.Unmarshal([]byte(val), &user); jsonErr == nil {
+			// ✅ 直接返回缓存数据，不走数据库
+			return &user, nil
+		}
+	} else if !errors.Is(err, redis.Nil) {
+		// 如果是 redis.Nil 说明单纯没查到，如果是其他错（比如 Redis 挂了），记录个日志
+		// log.Error("Redis error", err)
+		// 注意：Redis 挂了不能影响主业务，所以这里我们不 return error，而是继续往下走查数据库
+	}
+
+	// ===========================
+	// 2️⃣ 第二步：查询数据库 (缓存未命中)
+	// ===========================
+	userDao := dao.NewUserDao(database.DB)
+	user, err := userDao.GetUserByID(ctx, id)
+	if err != nil {
+		// 数据库也没查到，那就是真没了
 		return nil, util.NewBizErr("UserNotFound", nil)
 	}
-	return &user, nil
+
+	// ===========================
+	// 3️⃣ 第三步：回写 Redis (缓存预热)
+	// ===========================
+	// 序列化：把 Struct 变成 JSON 字符串
+	data, _ := json.Marshal(user)
+
+	// 写入 Redis，设置过期时间 (比如 1 小时)
+	// ⚠️ 面试考点：一定要设置过期时间，防止死数据占满内存
+	myredis.RedisClient.Set(ctx, cacheKey, data, time.Hour*1).Err()
+
+	return user, nil
 }
 
-func ListUsers(req util.PaginationReq) ([]model.User, int64, error) {
-
-	var users []model.User
-	var total int64
-
-	// 1. 准备查询构建器 (如果有搜索条件，放在这里，比如 db = db.Where("name LIKE ?", ...))
-	db := database.DB.Model(&model.User{})
-
-	// 2. 先查总数 (注意：要在 Limit 之前查)
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// 3. 再查数据 (应用分页)
-	// Scopes 是 GORM 的高级用法，也可以直接写 .Offset().Limit()
-	// 正确：先 Order，再 Limit/Offset，最后 Find
-	err := db.Order("id desc"). // 1. 先决定排序 (很重要！分页必须先排序)
-					Offset(req.GetOffset()). // 2. 再偏移
-					Limit(req.GetSize()).    // 3. 再截取
-					Find(&users).            // 4. 最后执行查询！
-					Error
-
+func ListUsers(ctx context.Context, req util.PaginationReq) ([]model.User, int64, error) {
+	userDao := dao.NewUserDao(database.DB)
+	users, total, err := userDao.ListUsers(ctx, req.GetOffset(), req.GetSize())
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, util.NewBizErr("SystemBusy", nil)
 	}
-
 	return users, total, nil
 }
 
@@ -69,18 +95,20 @@ func LoginService(account, password string) (string, error) {
 	return token, nil
 }
 
-func RegisterService(account, password string) (*model.User, error) {
-	// 1. 应用层先检查一次 (为了过滤掉大部分正常情况下的重复，减少 DB 写入压力)
-	var count int64
-	database.DB.Model(&model.User{}).Where("account = ?", account).Count(&count)
-	if count > 0 {
+func RegisterService(ctx context.Context, account, password string) (*model.User, error) {
+
+	// 1. 初始化 DAO (使用全局 DB)
+	userDao := dao.NewUserDao(database.DB)
+
+	// 2. 业务逻辑：检查账号是否存在
+	exist, err := userDao.ExistOrNotByAccount(ctx, account)
+	if err != nil {
+		return nil, util.NewBizErr("SystemBusy", nil)
+	}
+	if exist {
 		return nil, util.NewBizErr("UserAlreadyExists", map[string]interface{}{
 			"Name": account,
 		})
-	}
-
-	if utf8.RuneCount([]byte(password)) < 6 {
-		return nil, util.NewBizErr("PasswordTooShort", nil)
 	}
 
 	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -93,8 +121,8 @@ func RegisterService(account, password string) (*model.User, error) {
 		Account:  account,
 	}
 
-	if err := database.DB.Create(&user).Error; err != nil {
-
+	// 5. 调用 DAO 保存
+	if err := userDao.CreateUser(ctx, &user); err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
 			return nil, util.NewBizErr("UserAlreadyExists", map[string]interface{}{
 				"Name": account,

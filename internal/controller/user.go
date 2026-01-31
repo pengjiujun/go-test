@@ -31,7 +31,7 @@ func (u *UserController) Index(c *gin.Context) {
 	}
 
 	// 2. 调用 Service
-	users, total, err := service.ListUsers(p)
+	users, total, err := service.ListUsers(c.Request.Context(), p)
 	if err != nil {
 		response.Fail(c, err)
 		return
@@ -66,9 +66,14 @@ func (u *UserController) Show(c *gin.Context) {
 		response.Fail(c, util.NewBizErr("Unauthorized", nil))
 		return
 	}
-	userID := value.(int64) // 类型断言
 
-	user, err := service.GetUserByID(userID)
+	userID, ok := value.(int64)
+	if !ok {
+		response.Fail(c, util.NewBizErr("Token 解析异常", nil))
+		return
+	}
+
+	user, err := service.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		response.Fail(c, err)
 		return
@@ -95,7 +100,7 @@ func (u *UserController) Created(c *gin.Context) {
 		return
 	}
 	// 2. 调用 Service
-	user, err := service.RegisterService(req.Account, req.Password)
+	user, err := service.RegisterService(c.Request.Context(), req.Account, req.Password)
 	if err != nil {
 		response.Fail(c, err)
 		return
