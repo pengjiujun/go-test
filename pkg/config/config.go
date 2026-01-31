@@ -67,18 +67,17 @@ func Load() {
 		panic(err)
 	}
 
-	var config Config
-	// 监听配置文件
+	// 初始加载配置
+	if err := v.Unmarshal(&Conf); err != nil {
+		panic(err)
+	}
+
+	// 监听配置文件变化
 	v.WatchConfig()
 	v.OnConfigChange(func(in fsnotify.Event) {
-		// 重载配置
-		if err := v.Unmarshal(&config); err != nil {
+		// 重载配置到全局变量 Conf
+		if err := v.Unmarshal(&Conf); err != nil {
 			panic(err)
 		}
 	})
-
-	if err := v.Unmarshal(&config); err != nil {
-		panic(err)
-	}
-	Conf = &config
 }

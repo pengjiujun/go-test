@@ -128,7 +128,7 @@ func (u *UserController) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := service.LoginService(req.Account, req.Password)
+	token, err := service.LoginService(c.Request.Context(), req.Account, req.Password)
 	if err != nil {
 		response.Fail(c, err)
 		return

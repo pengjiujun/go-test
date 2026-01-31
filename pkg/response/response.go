@@ -57,7 +57,7 @@ func Fail(c *gin.Context, err error) {
 	var unmarshalErr *json.UnmarshalTypeError
 	if errors.As(err, &unmarshalErr) {
 		c.JSON(http.StatusOK, Response{
-			Code: 11,
+			Code: http.StatusPaymentRequired,
 			Msg:  util.TransBiz(c, "InvalidJSON", nil), // 需在 TOML 配置
 			Data: nil,
 		})

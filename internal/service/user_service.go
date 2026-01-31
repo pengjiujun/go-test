@@ -75,10 +75,11 @@ func ListUsers(ctx context.Context, req util.PaginationReq) ([]model.User, int64
 	return users, total, nil
 }
 
-func LoginService(account, password string) (string, error) {
+func LoginService(ctx context.Context, account, password string) (string, error) {
 
 	var user model.User
-	if err := database.DB.Where("account = ?", account).First(&user).Error; err != nil {
+	userDao := dao.NewUserDao(database.DB)
+	if _, err := userDao.GetUserByAccount(ctx, account); err != nil {
 		return "", util.NewBizErr("UserNotFound", nil)
 	}
 
