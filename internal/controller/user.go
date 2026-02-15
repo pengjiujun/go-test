@@ -11,6 +11,10 @@ import (
 
 type UserController struct{}
 
+func NewUserController() *UserController {
+	return &UserController{}
+}
+
 // Index 获取用户列表
 // @Summary 获取用户列表
 // @Description 分页获取用户列表数据
@@ -61,18 +65,19 @@ func (u *UserController) Show(c *gin.Context) {
 
 	// 1. 获取上下文中的 UserID (注意类型断言)
 	// 假设中间件里存的是 uint 类型
-	value, exists := c.Get("userID")
-	if !exists {
-		response.Fail(c, util.NewBizErr("Unauthorized", nil))
-		return
-	}
+	//value, exists := c.Get("userID")
+	//if !exists {
+	//	response.Fail(c, util.NewBizErr("Unauthorized", nil))
+	//	return
+	//}
+	//
+	//userID, ok := value.(int64)
+	//if !ok {
+	//	response.Fail(c, util.NewBizErr("Token 解析异常", nil))
+	//	return
+	//}
 
-	userID, ok := value.(int64)
-	if !ok {
-		response.Fail(c, util.NewBizErr("Token 解析异常", nil))
-		return
-	}
-
+	userID := util.GetUserID(c)
 	user, err := service.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
 		response.Fail(c, err)

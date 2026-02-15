@@ -83,7 +83,8 @@ func Fail(c *gin.Context, err error) {
 	// 生产环境建议打印日志: log.Println("System Error:", err)
 	c.JSON(http.StatusOK, Response{
 		Code: http.StatusInternalServerError,
-		Msg:  util.TransBiz(c, "SystemBusy", nil),
+		//Msg:  util.TransBiz(c, "SystemBusy", nil),
+		Msg:  util.TransBiz(c, err.Error(), nil),
 		Data: nil,
 	})
 }

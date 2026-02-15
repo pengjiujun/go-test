@@ -24,6 +24,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"test/internal/controller"
 	"test/internal/middleware"
+	"test/pkg/config"
+	app "test/pkg/jwt"
 
 	swaggerFiles "github.com/swaggo/files" // 👈 导入这两个包
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -38,24 +40,59 @@ func Route() *gin.Engine {
 	router.Use(middleware.I18nMiddleware())
 	gin.SetMode(gin.DebugMode)
 
+	// 1. 在这里初始化一次，单例使用
+	jwtHandler := app.NewJWT(
+		config.Conf.Jwt.Secret,
+		config.Conf.Jwt.Issuer,
+		config.Conf.Jwt.ExpireSeconds,
+	)
+
 	// 👇 添加这一行，注册 Swagger 路由接口
 	// 访问 http://localhost:8080/swagger/index.html 即可看到文档
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	api := router.Group("/api")
+	// 控制器初始化（建议放在一起，或者随用随开）
+	//“模块前缀”与“鉴权逻辑”嵌套起来
+	bannerCtrl := controller.NewBannerController()
+	userCtrl := controller.NewUserController()
+	dtsCtrl := controller.NewDtsController()
 
-	u := new(controller.UserController)
-	user := api.Group("/user")
+	v1 := router.Group("/api")
 	{
-		user.GET("/index", u.Index)
-		user.POST("/create", u.Created)
-		user.POST("/login", u.Login)
-	}
+		// 轮播图
+		v1.GET("/banner", bannerCtrl.Index)
 
-	auth := api.Use(middleware.JWTAuth())
-	{
-		auth.GET("/user/show", u.Show)
-	}
+		// --- 用户模块 ---
+		user := v1.Group("/user")
+		{
+			// 1. 无需授权的接口 (Public)
+			user.GET("/index", userCtrl.Index)
+			user.POST("/create", userCtrl.Created)
+			user.POST("/login", userCtrl.Login)
 
+			// 2. 需要授权的子组 (Private)
+			// 嵌套一个子 Group，继承了 /user 前缀，并增加了 JWT 中间件
+			userAuth := user.Group("/")
+			userAuth.Use(middleware.JWTAuth(jwtHandler))
+			{
+				userAuth.GET("/show", userCtrl.Show) // 完整路径是 /api/user/show
+			}
+		}
+
+		// --- 游戏模块 ---
+		dts := v1.Group("/dts")
+		{
+			dts.GET("/ws", middleware.WsAuth(jwtHandler), dtsCtrl.Ws)
+
+			dtsAuth := dts.Group("/")
+			dtsAuth.Use(middleware.JWTAuth(jwtHandler))
+			{
+				dtsAuth.GET("/init", dtsCtrl.Init)  // 进入游戏
+				dtsAuth.GET("/quit", dtsCtrl.Quit)  // 退出游戏
+				dtsAuth.POST("/join", dtsCtrl.Join) // 加入游戏
+			}
+		}
+
+	}
 	return router
 }

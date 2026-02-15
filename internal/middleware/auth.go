@@ -4,11 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
-	"test/pkg/config"
 	app "test/pkg/jwt" // 导入刚才的包
 )
 
-func JWTAuth() gin.HandlerFunc {
+func JWTAuth(jwtHandler *app.JWT) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 获取 Authorization Header
 		tokenHeader := c.Request.Header.Get("Authorization")
@@ -26,8 +25,9 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		// 3. 初始化 JWT 实例
-		jwtHandler := app.NewJWT(config.Conf.Jwt.Secret, config.Conf.Jwt.Issuer, config.Conf.Jwt.ExpireSeconds)
+		// 改为闭包注入只初始化一次
+		//// 3. 初始化 JWT 实例
+		//jwtHandler := app.NewJWT(config.Conf.Jwt.Secret, config.Conf.Jwt.Issuer, config.Conf.Jwt.ExpireSeconds)
 
 		// 4. 解析 Token
 		claims, err := jwtHandler.ParseToken(parts[1])
@@ -39,6 +39,33 @@ func JWTAuth() gin.HandlerFunc {
 
 		// 5. 关键步骤：将用户信息存入上下文 (Context)
 		// 之后所有的 Controller 都能直接从 c 里拿到 UserID
+		c.Set("userID", claims.UserID)
+		c.Next()
+	}
+}
+
+func WsAuth(jwtHandler *app.JWT) gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		// 👇 必须写在 return 的这个匿名函数里面，每次连 WS 才会打印
+		//fmt.Println("收到 WS 连接请求，Token 为:", c.Query("token"))
+
+		token := c.Query("token")
+		if token == "" {
+			c.JSON(403, gin.H{"error": "Forbidden: Token Required"})
+			c.Abort()
+			return
+		}
+		// 3. 初始化 JWT 实例
+		//jwtHandler := app.NewJWT(config.Conf.Jwt.Secret, config.Conf.Jwt.Issuer, config.Conf.Jwt.ExpireSeconds)
+		// 这里调用你的 auth service 检查 token
+		claims, err := jwtHandler.ParseToken(token)
+		if err != nil {
+			c.JSON(403, gin.H{"error": "Forbidden"})
+			c.Abort()
+			return
+		}
+		// 将 UID 存入上下文
 		c.Set("userID", claims.UserID)
 		c.Next()
 	}

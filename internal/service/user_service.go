@@ -76,15 +76,13 @@ func ListUsers(ctx context.Context, req util.PaginationReq) ([]model.User, int64
 }
 
 func LoginService(ctx context.Context, account, password string) (string, error) {
-
-	var user model.User
 	userDao := dao.NewUserDao(database.DB)
-	if _, err := userDao.GetUserByAccount(ctx, account); err != nil {
+	user, err := userDao.GetUserByAccount(ctx, account)
+	if err != nil {
 		return "", util.NewBizErr("UserNotFound", nil)
 	}
 
-	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", util.NewBizErr("PasswordIncorrect", nil)
 	}
 

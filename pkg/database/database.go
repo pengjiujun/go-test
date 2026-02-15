@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"test/internal/model"
 	"test/pkg/config"
 )
@@ -20,7 +21,9 @@ func InitDb() {
 		config.Conf.Database.Database,
 	)
 
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Error), // 只打印错误，不打印警告
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -28,6 +31,11 @@ func InitDb() {
 	DB = db
 
 	// 初始化数据表
-	DB.AutoMigrate(&model.User{})
+	DB.AutoMigrate(
+		&model.User{},
+		&model.Banner{},
+		&model.LmDtsGame{},
+		&model.LmDtsRecord{},
+	)
 
 }

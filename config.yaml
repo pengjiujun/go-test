@@ -16,7 +16,7 @@ redis:
 jwt:
   secret: weiwei
   issuer: test
-  expireSeconds: 3600
+  expireSeconds: 36000
 
 # 日志配置
 log:
