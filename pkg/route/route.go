@@ -38,6 +38,7 @@ func Route() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 	router.Use(middleware.I18nMiddleware())
+	router.Use(middleware.Cors())
 	gin.SetMode(gin.DebugMode)
 
 	// 1. 在这里初始化一次，单例使用

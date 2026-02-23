@@ -25,7 +25,10 @@ func StartPushTask() {
 	clients := websocket.GlobalHub.GetAllClients()
 	for _, client := range clients {
 		// 获取该用户的个性化数据
-		userData, _ := service.GetUserGameData(context.Background(), int64(game.ID), client.ID)
+		userData, err := service.GetUserGameData(context.Background(), int64(game.ID), client.ID)
+		if err != nil {
+			continue
+		}
 		pushData := map[string]interface{}{
 			"dts_data": map[string]interface{}{
 				"user_id":     client.ID,

@@ -9,6 +9,7 @@ import (
 	"test/pkg/redis"
 	"test/pkg/route"
 	"test/pkg/translation"
+	"test/pkg/util"
 )
 
 //go:embed locales/*.toml
@@ -33,6 +34,12 @@ func main() {
 	defer cancel()
 
 	go process.Handle(ctx)
+
+	// 4. 🔥 启动异步发奖 Worker
+	// 使用你之前定义的 GoSafe 包装，防止发奖逻辑出错导致整个程序崩溃
+	util.GoSafe(func() {
+		process.StartBonusWorker(ctx)
+	})
 
 	// 路由中间件
 	r := route.Route()

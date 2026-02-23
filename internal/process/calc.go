@@ -137,12 +137,18 @@ func calc(game *model.LmDtsGame) int64 {
 
 			// ✅ 原子操作：增加余额（不要先 First 再 Save，高并发下会覆盖）
 			// ✅ 原子操作：退回本金 + 增加奖金，防止并发覆盖
-			totalReturn := bonus.Add(decimal.NewFromFloat(record.Amount))
-			if err = tx.Model(&model.User{}).Where("id = ?", record.UserId).
-				UpdateColumn("amount", gorm.Expr("amount + ?", totalReturn.InexactFloat64())).Error; err != nil {
-				return err
-			}
-			record.Bonus = bonus.InexactFloat64()
+			// 改为异步job执行
+			//totalReturn := bonus.Add(decimal.NewFromFloat(record.Amount))
+			//if err = tx.Model(&model.User{}).Where("id = ?", record.UserId).
+			//	UpdateColumn("amount", gorm.Expr("amount + ?", totalReturn.InexactFloat64())).Error; err != nil {
+			//	return err
+			//}
+
+			// 2. 将发奖任务推入 Redis 队列 (Job)
+			// 传递 RecordID 即可，后续由 Job 处理器处理
+			PushBonusJob(record.ID, record.UserId, bonus.Add(decimal.NewFromFloat(record.Amount)))
+
+			record.Bonus = bonus.InexactFloat64() //获得奖金
 			record.State = 1
 			//database.DB.Save(&record)
 

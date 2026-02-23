@@ -138,7 +138,7 @@ func HasLock(ctx context.Context) bool {
 }
 
 const (
-	MaxPeople = 3
+	MaxPeople = 2
 	Duration  = 30
 )
 
