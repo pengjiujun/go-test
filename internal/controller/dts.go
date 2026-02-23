@@ -228,13 +228,24 @@ func (dts DtsController) Ws(c *gin.Context) {
 
 	websocket.GlobalHub.Register(uid, client)
 
-	defer func() {
-		websocket.GlobalHub.Unregister(uid) // 对应 onClose: 删除
-		conn.Close()
+	// 核心修改：双向监听断开
+	go func() {
+		defer func() {
+			websocket.GlobalHub.Unregister(uid)
+			conn.Close()
+		}()
+		for {
+			// 必须读取，否则无法感知客户端主动断开
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
 	}()
 
 	for msg := range client.Send {
-		conn.WriteMessage(ws.TextMessage, msg)
+		if err := conn.WriteMessage(ws.TextMessage, msg); err != nil {
+			break
+		}
 	}
 
 }

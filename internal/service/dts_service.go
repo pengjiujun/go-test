@@ -194,7 +194,7 @@ func GetLastGameId(ctx context.Context) (uint, error) {
 
 func GetGame(gameID uint) (*model.LmDtsGame, error) {
 	var game model.LmDtsGame
-	if err := database.DB.Where("game_id = ?", gameID).First(&game).Error; err != nil {
+	if err := database.DB.Where("id = ?", gameID).First(&game).Error; err != nil {
 		return nil, err
 	}
 	return &game, nil
